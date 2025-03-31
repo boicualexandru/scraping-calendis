@@ -2,7 +2,7 @@ name: Calendis Scraper
 
 on:
   schedule:
-    - cron: "0 0 * ? * * *"  # Configurable cron schedule
+    - cron: "0 * * * *"  # Adjust the cron schedule as needed
   workflow_dispatch:  # Allows manual runs
 
 jobs:
