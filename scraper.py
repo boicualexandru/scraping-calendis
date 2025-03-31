@@ -20,9 +20,18 @@ CHECK_DAYS_AHEAD = os.getenv("CHECK_DAYS_AHEAD") # e.g., "3"
 CHECK_SPECIFIC_DAYS = os.getenv("CHECK_SPECIFIC_DAYS") # e.g., "2025-04-10,2025-04-12" ISO format: YYYY-MM-DD
 TIME_INTERVAL_START = os.getenv("TIME_INTERVAL_START", "16:00") # default 16:00 (24hr format)
 TIME_INTERVAL_END = os.getenv("TIME_INTERVAL_END", "20:00") # default 20:00 (24hr format)
+
 CLIENT_SESSION = os.getenv("CLIENT_SESSION") # long-lived cookie
+if not CLIENT_SESSION:
+    raise ValueError("CLIENT_SESSION must be set in the environment variables.")
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN") # Telegram bot token
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_TOKEN must be set in the environment variables.")
+
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") # Telegram chat ID
+if not TELEGRAM_CHAT_ID:
+    raise ValueError("TELEGRAM_CHAT_ID must be set in the environment variables.")
 
 # API URL template
 API_URL_TEMPLATE = "https://www.calendis.ro/api/get_available_slots"
