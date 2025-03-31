@@ -1,0 +1,32 @@
+name: Calendis Scraper
+
+on:
+  schedule:
+    - cron: "${{ secrets.SCRAPER_CRON }}"  # Configurable cron schedule
+  workflow_dispatch:  # Allows manual runs
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run scraper
+        env:
+          SERVICE_ID: ${{ secrets.SERVICE_ID }}
+          SCRAPE_DAYS_AHEAD: ${{ secrets.SCRAPE_DAYS_AHEAD }}
+          SPECIFIC_DATES: ${{ secrets.SPECIFIC_DATES }}
+          TIME_RANGE: ${{ secrets.TIME_RANGE }}
+          CLIENT_SESSION: ${{ secrets.CLIENT_SESSION }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scraper.py
