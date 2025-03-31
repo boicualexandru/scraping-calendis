@@ -2,12 +2,13 @@ name: Calendis Scraper
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Configurable cron schedule
+    - cron: "0 0 * ? * * *"  # Configurable cron schedule
   workflow_dispatch:  # Allows manual runs
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    environment: Production  # Use the Production environment
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,14 +17,19 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       
       - name: Run scraper
         env:
-          SERVICE_ID: ${{ secrets.SERVICE_ID }}
-          SCRAPE_DAYS_AHEAD: ${{ secrets.SCRAPE_DAYS_AHEAD }}
-          SPECIFIC_DATES: ${{ secrets.SPECIFIC_DATES }}
-          TIME_RANGE: ${{ secrets.TIME_RANGE }}
-          CLIENT_SESSION: ${{ secrets.CLIENT_SESSION }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SCRAPING_ENABLED: ${{ vars.SCRAPING_ENABLED }}
+          SERVICE_ID: ${{ vars.SERVICE_ID }}
+          CHECK_DAYS_AHEAD: ${{ vars.CHECK_DAYS_AHEAD }}
+          CHECK_SPECIFIC_DAYS: ${{ vars.CHECK_SPECIFIC_DAYS }}
+          TIME_INTERVAL_START: ${{ vars.TIME_INTERVAL_START }}
+          TIME_INTERVAL_END: ${{ vars.TIME_INTERVAL_END }}
+          CLIENT_SESSION: ${{ vars.CLIENT_SESSION }}
+          TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
         run: python scraper.py

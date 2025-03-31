@@ -1,32 +1,37 @@
 import os
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import List, Optional
 
-# Configuration from environment variables
-SERVICE_ID = os.environ.get("SERVICE_ID", "8029")  # default to tennis
-LOCATION_ID = os.environ.get("LOCATION_ID", "1651")  # as in your URL
-CLIENT_SESSION = os.environ.get("CLIENT_SESSION")  # your long-lived cookie
+def load_env():
+    if os.path.exists(".env"):
+        with open(".env") as f:
+            for line in f:
+                key, value = line.strip().split("=", 1)
+                os.environ[key] = value
 
-# For scraping days:
-# Either use CHECK_DAYS_AHEAD (an integer) OR CHECK_SPECIFIC_DAYS (comma separated list, ISO format: YYYY-MM-DD)
-CHECK_DAYS_AHEAD = os.environ.get("CHECK_DAYS_AHEAD")  # e.g., "3"
-CHECK_SPECIFIC_DAYS = os.environ.get("CHECK_SPECIFIC_DAYS")  # e.g., "2025-04-10,2025-04-12"
+load_env()
 
-# Time interval of interest (24hr format)
-TIME_INTERVAL_START = os.environ.get("TIME_INTERVAL_START", "16:00")  # default 16:00
-TIME_INTERVAL_END = os.environ.get("TIME_INTERVAL_END", "20:00")      # default 20:00
-
-# Telegram notification configuration
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-
-# Scraping enabled flag (allow turning off the script)
-SCRAPING_ENABLED = os.environ.get("SCRAPING_ENABLED", "1") == "1"
+SCRAPING_ENABLED = os.getenv("SCRAPING_ENABLED", "1") == "1" # Default to True (1)
+SERVICE_ID = os.getenv("SERVICE_ID", "8029") # 8029 is for tennis, 8033 is for basketball
+LOCATION_ID = os.getenv("LOCATION_ID", "1651")  # 1651 is for Baza Sportiva
+CHECK_DAYS_AHEAD = os.getenv("CHECK_DAYS_AHEAD") # e.g., "3"
+CHECK_SPECIFIC_DAYS = os.getenv("CHECK_SPECIFIC_DAYS") # e.g., "2025-04-10,2025-04-12" ISO format: YYYY-MM-DD
+TIME_INTERVAL_START = os.getenv("TIME_INTERVAL_START", "16:00") # default 16:00 (24hr format)
+TIME_INTERVAL_END = os.getenv("TIME_INTERVAL_END", "20:00") # default 20:00 (24hr format)
+CLIENT_SESSION = os.getenv("CLIENT_SESSION") # long-lived cookie
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN") # Telegram bot token
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") # Telegram chat ID
 
 # API URL template
 API_URL_TEMPLATE = "https://www.calendis.ro/api/get_available_slots"
+
+# term dictionary for the service by service id
+SERVICE_TERMS = {
+    "8029": "Tennis",
+    "8033": "Basketball",
+}
 
 def parse_time_str(time_str: str) -> datetime.time:
     """Convert a 'HH:MM' string to a time object."""
@@ -50,7 +55,7 @@ def get_dates_to_check() -> List[int]:
     elif CHECK_DAYS_AHEAD:
         try:
             days_ahead = int(CHECK_DAYS_AHEAD)
-            today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
             for i in range(days_ahead):
                 date_obj = today + timedelta(days=i)
                 dates.append(int(date_obj.timestamp()))
@@ -58,7 +63,7 @@ def get_dates_to_check() -> List[int]:
             print("CHECK_DAYS_AHEAD must be an integer.")
     else:
         # Default: check just today
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
         dates.append(int(today.timestamp()))
     return dates
 
@@ -67,7 +72,7 @@ def is_slot_in_time_interval(slot_timestamp: int) -> bool:
     Check if the slot (given by its Unix timestamp) falls within the configured time interval.
     Assumes the timestamp is in UTC; adjust if needed.
     """
-    slot_time = datetime.utcfromtimestamp(slot_timestamp).time()
+    slot_time = datetime.fromtimestamp(slot_timestamp, UTC).time()
     start_time = parse_time_str(TIME_INTERVAL_START)
     end_time = parse_time_str(TIME_INTERVAL_END)
     return start_time <= slot_time <= end_time
@@ -111,10 +116,10 @@ def check_slots_for_date(date_unix: int) -> Optional[List[dict]]:
         data = response.json()
     except Exception as e:
         print(f"Error fetching data for {date_unix}: {e}")
-        return None
+        raise
 
     if data.get("success") != 1:
-        print(f"No available slots on {datetime.utcfromtimestamp(date_unix).date()}")
+        print(f"No available slots on {datetime.fromtimestamp(date_unix, UTC).date()}")
         return None
 
     # Filter slots within the desired time interval
@@ -129,18 +134,24 @@ def main():
         return
 
     dates_to_check = get_dates_to_check()
-    overall_message = ""
+    overall_message = f"Available slots for {SERVICE_TERMS.get(SERVICE_ID, 'Unknown Service')}:\n"
     
     for date_unix in dates_to_check:
-        date_str = datetime.utcfromtimestamp(date_unix).strftime("%Y-%m-%d")
+        date_str = datetime.fromtimestamp(date_unix, UTC).strftime("%Y-%m-%d")
         slots = check_slots_for_date(date_unix)
         if slots:
             overall_message += f"Slots available on {date_str}:\n"
             for slot in slots:
-                slot_time_str = datetime.utcfromtimestamp(slot["time"]).strftime("%H:%M")
+                slot_time_str = datetime.fromtimestamp(slot["time"], UTC).strftime("%H:%M")
                 overall_message += f" - {slot_time_str} (staff: {slot.get('staff_id')})\n"
         else:
             print(f"No matching slots for {date_str} in the desired time interval.")
+    
+    overall_message += f"\nChecked time interval: {TIME_INTERVAL_START} - {TIME_INTERVAL_END}\n"
+    if CHECK_DAYS_AHEAD:
+        overall_message += f"Checked {CHECK_DAYS_AHEAD} days ahead.\n"
+    if CHECK_SPECIFIC_DAYS:
+        overall_message += f"Checked specific days: {CHECK_SPECIFIC_DAYS}\n"
 
     if overall_message:
         print("Sending notification...")

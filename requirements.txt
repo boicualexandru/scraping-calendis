@@ -1,0 +1,2 @@
+requests
+python-dotenv  # Only if you're using Option 1 for .env handling
