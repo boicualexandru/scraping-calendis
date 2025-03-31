@@ -15,10 +15,9 @@ load_env()
 
 SCRAPING_ENABLED = os.getenv("SCRAPING_ENABLED", "1") == "1" # Default to True (1)
 SERVICE_ID = os.getenv("SERVICE_ID", "8029") # 8029 is for tennis, 8033 is for basketball
-LOCATION_ID = os.getenv("LOCATION_ID", "1651")  # 1651 is for Baza Sportiva
 CHECK_DAYS_AHEAD = os.getenv("CHECK_DAYS_AHEAD") # e.g., "3"
 CHECK_SPECIFIC_DAYS = os.getenv("CHECK_SPECIFIC_DAYS") # e.g., "2025-04-10,2025-04-12" ISO format: YYYY-MM-DD
-TIME_INTERVAL_START = os.getenv("TIME_INTERVAL_START", "16:00") # default 16:00 (24hr format)
+TIME_INTERVAL_START = os.getenv("TIME_INTERVAL_START", "08:00") # default 16:00 (24hr format)
 TIME_INTERVAL_END = os.getenv("TIME_INTERVAL_END", "20:00") # default 20:00 (24hr format)
 
 CLIENT_SESSION = os.getenv("CLIENT_SESSION") # long-lived cookie
@@ -35,6 +34,7 @@ if not TELEGRAM_CHAT_ID:
 
 # API URL template
 API_URL_TEMPLATE = "https://www.calendis.ro/api/get_available_slots"
+LOCATION_ID = "1651"  # Baza Sportiva location ID
 
 # term dictionary for the service by service id
 SERVICE_TERMS = {
