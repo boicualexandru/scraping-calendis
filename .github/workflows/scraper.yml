@@ -2,7 +2,7 @@ name: Calendis Scraper
 
 on:
   schedule:
-    - cron: "${{ secrets.SCRAPER_CRON }}"  # Configurable cron schedule
+    - cron: "*/5 * * * *"  # Configurable cron schedule
   workflow_dispatch:  # Allows manual runs
 
 jobs:
