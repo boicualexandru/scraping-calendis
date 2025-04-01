@@ -1,10 +1,5 @@
 name: Calendis Scraper
 
-permissions:
-  actions: write
-  repo: write
-  contents: write
-
 on:
   schedule:
     - cron: "*/5 * * * *"  # run every 5 minutes. Adjust the cron schedule as needed
@@ -36,7 +31,7 @@ jobs:
           CLIENT_SESSION: ${{ vars.CLIENT_SESSION }}
           CALENDIS_USER_EMAIL: ${{ secrets.CALENDIS_USER_EMAIL }}
           CALENDIS_USER_PASSWORD: ${{ secrets.CALENDIS_USER_PASSWORD }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PAT_TOKEN: ${{ secrets.GH_PAT_TOKEN }}
           TELEGRAM_TOKEN: ${{ vars.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
         run: python scraper.py

@@ -35,7 +35,7 @@ TIME_INTERVAL_END = get_env("TIME_INTERVAL_END", "20:00") # default 20:00 (24hr 
 CLIENT_SESSION = get_required_env("CLIENT_SESSION") # long-lived cookie
 CALENDIS_USER_EMAIL = get_required_env("CALENDIS_USER_EMAIL") # email used to login to calendis.ro
 CALENDIS_USER_PASSWORD = get_required_env("CALENDIS_USER_PASSWORD") # password used to login to calendis.ro
-GITHUB_TOKEN = get_required_env("GITHUB_TOKEN") # GitHub Personal Access Token (PAT) for updating environment variables
+GH_PAT_TOKEN = get_required_env("GH_PAT_TOKEN") # GitHub Personal Access Token (PAT) for updating environment variables
 
 TELEGRAM_TOKEN = get_required_env("TELEGRAM_TOKEN") # Telegram bot token
 TELEGRAM_CHAT_ID = get_required_env("TELEGRAM_CHAT_ID") # Telegram chat ID
@@ -177,7 +177,7 @@ def update_github_env_variable(variable_name, value):
     repo_name = "scraping-calendis"
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/variables/{variable_name}"
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {GH_PAT_TOKEN}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28"
     }
