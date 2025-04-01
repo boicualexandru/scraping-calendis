@@ -2,6 +2,8 @@ name: Calendis Scraper
 
 permissions:
   actions: write
+  repo: write
+  contents: write
 
 on:
   schedule:
