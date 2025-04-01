@@ -1,5 +1,8 @@
 name: Calendis Scraper
 
+permissions:
+  actions: write
+
 on:
   schedule:
     - cron: "*/5 * * * *"  # run every 5 minutes. Adjust the cron schedule as needed
@@ -8,8 +11,6 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    permissions:
-      variables: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
