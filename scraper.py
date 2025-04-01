@@ -30,7 +30,7 @@ SERVICE_ID = get_env("SERVICE_ID", "8029") # 8029 is for tennis, 8033 is for bas
 CHECK_DAYS_AHEAD = get_env("CHECK_DAYS_AHEAD") # e.g., "3"
 CHECK_SPECIFIC_DAYS = get_env("CHECK_SPECIFIC_DAYS") # e.g., "2025-04-10,2025-04-12" ISO format: YYYY-MM-DD
 TIME_INTERVAL_START = get_env("TIME_INTERVAL_START", "08:00") # default 16:00 (24hr format)
-TIME_INTERVAL_END = get_env("TIME_INTERVAL_END", "20:00") # default 20:00 (24hr format)
+TIME_INTERVAL_END = get_env("TIME_INTERVAL_END", "22:00") # default 20:00 (24hr format)
 
 CLIENT_SESSION = get_required_env("CLIENT_SESSION") # long-lived cookie
 CALENDIS_USER_EMAIL = get_required_env("CALENDIS_USER_EMAIL") # email used to login to calendis.ro
