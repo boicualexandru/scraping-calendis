@@ -1,8 +1,9 @@
 import os
 import requests
 import json
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+from zoneinfo import ZoneInfo  # Import ZoneInfo
 
 def load_env():
     if os.path.exists(".env"):
@@ -25,6 +26,7 @@ def get_required_env(key: str):
         raise ValueError(f"Environment variable {key} is required.")
     return envVar
 
+IS_DEVELOPMENT = get_env("IS_DEVELOPMENT", "0") == "1" # Default to False (0)
 SCRAPING_ENABLED = get_env("SCRAPING_ENABLED", "1") == "1" # Default to True (1)
 SERVICE_ID = get_env("SERVICE_ID", "8029") # 8029 is for tennis, 8033 is for basketball
 CHECK_DAYS_AHEAD = get_env("CHECK_DAYS_AHEAD") # e.g., "3"
@@ -50,6 +52,9 @@ SERVICE_TERMS = {
     "8033": "Basketball",
 }
 
+# Define Romanian timezone using ZoneInfo
+ROMANIAN_TZ = timezone(timedelta(hours=3)) if IS_DEVELOPMENT else ZoneInfo('Europe/Bucharest')
+
 def parse_time_str(time_str: str) -> datetime.time:
     """Convert a 'HH:MM' string to a time object."""
     return datetime.strptime(time_str, "%H:%M").time()
@@ -57,39 +62,43 @@ def parse_time_str(time_str: str) -> datetime.time:
 def get_dates_to_check() -> List[int]:
     """
     Determine which days to check.
-    Returns a list of Unix timestamps (for the beginning of the day in UTC)
+    Returns a list of Unix timestamps (for 9:00 AM in Romanian timezone)
     """
     dates = []
     if CHECK_SPECIFIC_DAYS:
         # Expecting a comma separated list of dates in ISO format (YYYY-MM-DD)
         for date_str in CHECK_SPECIFIC_DAYS.split(","):
             try:
+                # Parse the date in Romanian timezone (at 9:00 AM)
                 date_obj = datetime.strptime(date_str.strip(), "%Y-%m-%d")
-                # Convert to Unix timestamp (assuming 00:00 of that day in UTC)
+                date_obj = date_obj.replace(tzinfo=ROMANIAN_TZ, hour=9, minute=0, second=0, microsecond=0)
+                # Convert to Unix timestamp
                 dates.append(int(date_obj.timestamp()))
             except ValueError:
                 print(f"Invalid date format for {date_str}. Use YYYY-MM-DD.")
     elif CHECK_DAYS_AHEAD:
         try:
             days_ahead = int(CHECK_DAYS_AHEAD)
-            today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+            # Start with today in Romanian timezone at 9:00 AM
+            today = datetime.now(ROMANIAN_TZ).replace(hour=9, minute=0, second=0, microsecond=0)
             for i in range(days_ahead):
                 date_obj = today + timedelta(days=i)
                 dates.append(int(date_obj.timestamp()))
         except ValueError:
             print("CHECK_DAYS_AHEAD must be an integer.")
     else:
-        # Default: check just today
-        today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        # Default: check just today in Romanian timezone at 9:00 AM
+        today = datetime.now(ROMANIAN_TZ).replace(hour=9, minute=0, second=0, microsecond=0)
         dates.append(int(today.timestamp()))
     return dates
 
 def is_slot_in_time_interval(slot_timestamp: int) -> bool:
     """
     Check if the slot (given by its Unix timestamp) falls within the configured time interval.
-    Assumes the timestamp is in UTC; adjust if needed.
+    Converts the timestamp to Romanian time before comparing.
     """
-    slot_time = datetime.fromtimestamp(slot_timestamp, UTC).time()
+    # Convert Unix timestamp to datetime in Romanian timezone
+    slot_time = datetime.fromtimestamp(slot_timestamp, ROMANIAN_TZ).time()
     start_time = parse_time_str(TIME_INTERVAL_START)
     end_time = parse_time_str(TIME_INTERVAL_END)
     return start_time <= slot_time <= end_time
@@ -216,6 +225,7 @@ def check_slots_for_date(date_unix: int) -> Optional[List[dict]]:
         "sec-ch-ua-platform": '"Windows"'
     }
     
+    print(f"Checking slots for param: {params}")
     try:
         response = requests.get(API_URL_TEMPLATE, params=params, headers=headers)
         
@@ -239,7 +249,7 @@ def check_slots_for_date(date_unix: int) -> Optional[List[dict]]:
         raise
 
     if data.get("success") != 1:
-        print(f"No available slots on {datetime.fromtimestamp(date_unix, UTC).date()}")
+        print(f"No available slots on {datetime.fromtimestamp(date_unix, ROMANIAN_TZ).date()}")
         return None
 
     # Filter slots within the desired time interval
@@ -254,32 +264,33 @@ def main():
         return
 
     dates_to_check = get_dates_to_check()
-
-    all_slots = {}
+    overall_message = f"Available slots for {SERVICE_TERMS.get(SERVICE_ID, 'Unknown Service')}:\n"
+    
     for date_unix in dates_to_check:
-        date_str = datetime.fromtimestamp(date_unix, UTC).strftime("%Y-%m-%d")
+        # Format date using Romanian timezone
+        date_str = datetime.fromtimestamp(date_unix, ROMANIAN_TZ).strftime("%Y-%m-%d")
         slots = check_slots_for_date(date_unix)
         if slots:
-            all_slots[date_str] = slots
+            overall_message += f"{date_str}:\n"
+            for slot in slots:
+                # Format time using Romanian timezone
+                slot_time_str = datetime.fromtimestamp(slot["time"], ROMANIAN_TZ).strftime("%H:%M")
+                overall_message += f" - {slot_time_str}\n"
+        else:
+            print(f"No matching slots for {date_str} in the desired time interval.")
     
-    if not all_slots:
+    if not overall_message:
         print("No matching slots found in the desired time interval, so no notification will be sent.")
         return
     
-    message = f"Available slots for {SERVICE_TERMS.get(SERVICE_ID, 'Unknown Service')}:\n"
-    for date_str, slots in all_slots.items():
-        message += f"\n{date_str}:\n"
-        for slot in slots:
-            slot_time_str = datetime.fromtimestamp(slot["time"], UTC).strftime("%H:%M")
-            message += f" - {slot_time_str}\n"
-    message += f"\nChecked time interval: {TIME_INTERVAL_START} - {TIME_INTERVAL_END}\n"
+    overall_message += f"\nChecked time interval: {TIME_INTERVAL_START} - {TIME_INTERVAL_END}\n"
     if CHECK_DAYS_AHEAD:
-        message += f"Checked {CHECK_DAYS_AHEAD} days ahead.\n"
+        overall_message += f"Checked {CHECK_DAYS_AHEAD} days ahead.\n"
     if CHECK_SPECIFIC_DAYS:
-        message += f"Checked specific days: {CHECK_SPECIFIC_DAYS}\n"
+        overall_message += f"Checked specific days: {CHECK_SPECIFIC_DAYS}\n"
 
-    print(f"Sending notification...\n{message}")
-    send_telegram_notification(message)
+    print(f"Sending notification...\n{overall_message}")
+    send_telegram_notification(overall_message)
     # disable scraping after sending notification
     update_github_env_variable("SCRAPING_ENABLED", "0")
 

@@ -1,2 +1,3 @@
 requests
 python-dotenv  # Only if you're using Option 1 for .env handling
+tzdata  # Required for ZoneInfo timezone database on some platforms
