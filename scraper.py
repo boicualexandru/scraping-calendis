@@ -254,7 +254,7 @@ def check_slots_for_date(date_unix: int) -> Optional[List[dict]]:
 
     # Filter slots within the desired time interval
     slots = data.get("available_slots", [])
-    filtered_slots = [slot for slot in slots if is_slot_in_time_interval(slot["time"]) and slot.get("is_available") == 1]
+    filtered_slots = [slot for slot in slots if is_slot_in_time_interval(int(slot["time"])) and slot.get("is_available") == 1]
     
     return filtered_slots if filtered_slots else None
 
@@ -274,7 +274,7 @@ def main():
             overall_message += f"{date_str}:\n"
             for slot in slots:
                 # Format time using Romanian timezone
-                slot_time_str = datetime.fromtimestamp(slot["time"], ROMANIAN_TZ).strftime("%H:%M")
+                slot_time_str = datetime.fromtimestamp(int(slot["time"]), ROMANIAN_TZ).strftime("%H:%M")
                 overall_message += f" - {slot_time_str}\n"
         else:
             print(f"No matching slots for {date_str} in the desired time interval.")
